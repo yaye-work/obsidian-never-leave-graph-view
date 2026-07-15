@@ -41,7 +41,11 @@ This plugin drives Obsidian's graph renderer through internals that aren't part 
 
 Thank you for using Never Leave the Graph View! If you run into a bug or have an idea, please [open an issue](https://github.com/yaye-work/obsidian-never-leave-graph-view/issues). Feature requests and bug reports are very welcome.
 
-And if you like NLtGV, you can [buy me a coffee ☕](https://buymeacoffee.com/yaye.work). It's genuinely appreciated.
+And if you find NEVER LEAVES THE GRAPH VIEW useful, you can:
+
+[<img width=auto height="70" alt="buymea bubbletea" src="https://github.com/user-attachments/assets/0f9d8765-d124-4e63-8668-bf06100b7c0a" />](https://buymeacoffee.com/yaye.work)
+
+It's genuinely appreciated.
 
 Happy noting! 
 Yaye
