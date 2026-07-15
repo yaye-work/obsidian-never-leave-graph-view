@@ -11,11 +11,16 @@ The graph stops being a read-only map and becomes the place you actually work.
 - **Hover a node in the graph view → preview it.** Quickly browse through your notes by hovering on the nodes.
 
 - **Click an existing node → edit it directly in the campanion pane.** Hell yeah dude, hell yeah.
+
+<img alt="Hover Node to Preview and Click to Edit" src="https://github.com/user-attachments/assets/0023f040-7166-473a-bf56-0e82c6bfe0a7" />
+
    
 - **Click a greyed-out node → create it.** The note is created *at that node's position*. Opened for editing immediately. Leave without typing and it quietly deletes itself, reverting the node to grey.
 
 -  **Add a note anywhere.** A button in the graph's control bar, or right-click empty canvas → *New note here* — the note is born at that exact spot.
-  
+
+<img alt="make new node" src="https://github.com/user-attachments/assets/3a689d99-b660-493e-9cf7-84138f4a31a0" />
+
 - **Filter-aware creation.** With a graph filter active, new notes are made to *match* it (created in a `path:` folder, seeded with a `tag:` or search term) so they don't vanish on creation. When conforming isn't possible, the filter is briefly lifted and restored once the note qualifies on its own.
 
 - **An lone eye watching over you, because why not** A little bit of fun. Click to edit a note to make it happy. 
