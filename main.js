@@ -103,6 +103,14 @@ class GraphNodePreviewPlugin extends Plugin {
       },
     });
 
+    // File-explorer integration (only while a graph view is visible):
+    // hovering a file previews it and highlights its node; clicking a
+    // markdown file arms it in the preview pane instead of opening a tab.
+    this.explorerHoverPath = null;
+    this.registerDomEvent(document, 'mouseover', (evt) => this.onExplorerHover(evt));
+    this.registerDomEvent(document, 'mouseout', (evt) => this.onExplorerHoverOut(evt));
+    this.registerDomEvent(document, 'click', (evt) => this.onExplorerClick(evt), { capture: true });
+
     // Dim everything but the preview pane while the user is typing in it,
     // so it's obvious where input is going and that hover updates are paused.
     this.registerDomEvent(document, 'focusin', () => this.updateDimming());
@@ -210,10 +218,25 @@ class GraphNodePreviewPlugin extends Plugin {
     }));
   }
 
+  // A graph leaf can exist but be hidden behind another tab; the graph-first
+  // extras should only engage when a graph is actually on screen.
+  hasVisibleGraphView() {
+    for (const type of GRAPH_VIEW_TYPES) {
+      for (const leaf of this.app.workspace.getLeavesOfType(type)) {
+        const el = leaf.view && leaf.view.containerEl;
+        if (!el) continue;
+        if (typeof el.isShown === 'function' ? el.isShown() : el.offsetParent) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   // Vault notices are part of the graph-first workflow: only speak when a
-  // graph view is open (and never during startup file indexing).
+  // graph view is actually visible (and never during startup indexing).
   notifyReady() {
-    return this.app.workspace.layoutReady && this.hasGraphView();
+    return this.app.workspace.layoutReady && this.hasVisibleGraphView();
   }
 
   focusGraphLeaf() {
@@ -1463,7 +1486,6 @@ class GraphNodePreviewPlugin extends Plugin {
 
   async handleNodeHover(nodeId, nodeType) {
     if (!nodeId || nodeType === 'tag') return;
-    if (this.opening) return;
     // A node is armed for editing: the pane is frozen on it, hovers ignored.
     if (this.armedPath) return;
     // Never disturb the pane mid-edit or while locked.
@@ -1476,6 +1498,82 @@ class GraphNodePreviewPlugin extends Plugin {
 
     const file = this.app.vault.getAbstractFileByPath(nodeId);
     if (!(file instanceof TFile)) return;
+    await this.previewFile(file);
+  }
+
+  explorerFileFromEvent(evt) {
+    const target = evt.target instanceof Element ? evt.target : null;
+    const titleEl = target && target.closest('.nav-file-title');
+    if (!titleEl) return null;
+    const path = titleEl.getAttribute('data-path');
+    if (!path) return null;
+    const file = this.app.vault.getAbstractFileByPath(path);
+    return file instanceof TFile ? file : null;
+  }
+
+  // Spotlight a hovered file's node using the same pinned-highlight
+  // accessor as editing: a raw highlightNode assignment gets cleared by
+  // the renderer's own hover re-evaluation as soon as the pointer rests.
+  pinExplorerHover(nodeId) {
+    for (const { renderer } of this.patchedRenderers) {
+      if (renderer.nodeLookup && renderer.nodeLookup[nodeId]) {
+        this.unpinHighlight();
+        this.pinHighlight({ renderer, nodeId });
+        return;
+      }
+    }
+    // File has no node in any graph (filtered out, attachment...).
+    this.unpinHighlight();
+  }
+
+  onExplorerHover(evt) {
+    if (!this.hasVisibleGraphView()) return;
+    if (this.armedPath || this.paneBusy()) return;
+    const file = this.explorerFileFromEvent(evt);
+    if (!file) return;
+    if (this.explorerHoverPath === file.path) return;
+    this.explorerHoverPath = file.path;
+    this.pinExplorerHover(file.path);
+    if (file.extension === 'md') {
+      this.previewFile(file).catch((e) => console.error('graph-node-preview:', e));
+    }
+  }
+
+  onExplorerHoverOut(evt) {
+    if (!this.explorerHoverPath) return;
+    const from = evt.target instanceof Element
+      ? evt.target.closest('.nav-file-title') : null;
+    if (!from) return;
+    const to = evt.relatedTarget instanceof Element
+      ? evt.relatedTarget.closest('.nav-file-title') : null;
+    // Moving within the same item (or straight onto another, which the
+    // mouseover handler covers) isn't a real leave.
+    if (to === from || to) return;
+    this.explorerHoverPath = null;
+    if (this.armedPath || this.paneBusy()) return;
+    this.unpinHighlight();
+    this.clearGraphHover();
+    this.showBlankState();
+  }
+
+  onExplorerClick(evt) {
+    if (!this.hasVisibleGraphView()) return;
+    // Modifier clicks keep their native meaning (open in new tab, etc.).
+    if (Keymap.isModEvent(evt)) return;
+    const file = this.explorerFileFromEvent(evt);
+    if (!file || file.extension !== 'md') return;
+    evt.preventDefault();
+    evt.stopPropagation();
+    this.explorerHoverPath = null;
+    // The edit flow installs its own pin; release the hover one first.
+    this.unpinHighlight();
+    this.editInPreview(file).catch((e) => console.error('graph-node-preview:', e));
+  }
+
+  // Transiently show a file in the preview pane (shared by graph-node
+  // hovers and file-explorer hovers).
+  async previewFile(file) {
+    if (this.opening) return;
     this.hidePaneMessage();
 
     this.opening = true;

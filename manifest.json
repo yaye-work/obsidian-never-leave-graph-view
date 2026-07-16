@@ -1,7 +1,7 @@
 {
   "id": "graph-node-preview",
   "name": "I Will Never Leave the Graph View",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "minAppVersion": "1.4.0",
   "description": "Preview, edit, and add notes directly in the graph view — hover a node to preview it, click to edit, right-click empty space to create.",
   "author": "yaye.work",
